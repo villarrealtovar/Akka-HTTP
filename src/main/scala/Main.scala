@@ -1,7 +1,8 @@
+import adts.Todo
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import akka.http.scaladsl.server.Directives._
+import repositories.InMemoryTodoRepository
+import router.TodoRouter
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -17,13 +18,14 @@ object Main extends App {
 
   import system.dispatcher
 
-  def route = path("hello") {
-    get {
-      complete("Hello World!")
-    }
-  }
+  val todoRepository = new InMemoryTodoRepository(Seq(
+    Todo("1", "Buy eggs", "Ran out of eggs, buy a dozen", false),
+    Todo("2", "Buy milk", "The cat is thirsty", true)
+  ))
+  val router = new TodoRouter(todoRepository)
+  val server = new Server(router, host, port)
 
-  val binding = Http().bindAndHandle(route, host, port)
+  val binding = server.bind
   binding.onComplete {
     case Success(_) => println("Success!")
     case Failure(error)  => println(s"Failed: ${error.getMessage}")
